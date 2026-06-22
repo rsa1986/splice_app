@@ -743,12 +743,27 @@ function openPanel(id){
   const rw=document.getElementById('retro-wrap'); if(rw) rw.style.display='none';
 
   document.getElementById('ov').classList.add('open');
+  history.pushState({panel:id},'','#'+id);
   document.body.style.overflow='hidden';
   setTimeout(()=>{if(!isSE)drawMM(ft);},80);
 }
 
-function closePanel(){document.getElementById('ov').classList.remove('open');document.body.style.overflow='';curFT=null;render();if(curNav==='prod')renderProd();}
+function closePanel(fromPopstate){
+  document.getElementById('ov').classList.remove('open');
+  document.body.style.overflow='';
+  curFT=null;
+  render();
+  if(curNav==='prod')renderProd();
+  // Só chama history.back se o fechamento NÃO veio do botão voltar
+  if(!fromPopstate && location.hash) history.back();
+}
 function onOvCk(e){if(e.target===document.getElementById('ov'))closePanel();}
+// Intercepta o botão voltar do celular
+window.addEventListener('popstate',function(e){
+  if(document.getElementById('ov').classList.contains('open')){
+    closePanel(true);
+  }
+});
 
 // WORK TYPE
 function setWork(v){

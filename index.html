@@ -319,12 +319,6 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
    <div class="sec">
     <div class="sech" onclick="togSec('sm','sm-a')"><div class="sect">Posição na rede</div><div class="secarr" id="sm-a">▲</div></div>
     <div id="sm">
-     <div class="mmap"><canvas class="mmc" id="mmc"></canvas></div>
-     <div class="mmleg">
-      <span><span class="mmd" style="background:#f0883e"></span>Anterior</span>
-      <span><span class="mmd" style="background:#58a6ff"></span>Este FT</span>
-      <span><span class="mmd" style="background:#3fb950"></span>Próximo</span>
-     </div>
      <a class="gps-btn" id="d-gps" href="#" target="_blank">📍 Ver localização no Maps</a>
      <a class="route-btn" id="d-route" href="#" target="_blank">🧭 Traçar rota até este FT</a>
     </div>
@@ -400,6 +394,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <textarea class="nin" id="d-note" placeholder="Descreva o problema..."></textarea>
    </div>
 
+   <button id="b-save" onclick="savePanel()" style="width:100%;margin-top:12px;padding:13px;border-radius:var(--r2);border:1.5px solid var(--blue);background:var(--bbg);color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">💾 Salvar alterações</button>
    <div class="ar">
     <button class="ba ba-done" id="b-done" onclick="markDone()">✓ Feito</button>
     <button class="ba ba-prob" id="b-prob" onclick="markProb()">⚠ Problema</button>
@@ -420,7 +415,32 @@ function saveST(){localStorage.setItem('fa_v7',JSON.stringify(ST));}
 function getS(id){return(ST[curP?.id]||{})[id]||{};}
 function setS(id,o){if(!ST[curP.id])ST[curP.id]={};ST[curP.id][id]={...getS(id),...o};saveST();}
 
+function deriveChainLinks(d){
+  d.fts.forEach(ft=>{
+    const myId=ft.id;
+    // ft_anterior from sheath_in: "PREV_TO_THIS_spec"
+    if(!ft.ft_anterior||ft.ft_anterior==='—'){
+      const p=(ft.sheath_in||'').split('_TO_');
+      if(p.length===2){
+        const from=p[0];
+        const to=p[1].replace(/_\d+[A-Z]+$/,'');
+        if(to===myId&&from!==myId&&/_FT_\d+$/.test(from)) ft.ft_anterior=from;
+      }
+    }
+    // ft_proximo from sheath_out: "THIS_TO_NEXT_spec"
+    if(!ft.ft_proximo||ft.ft_proximo==='—'){
+      const p=(ft.sheath_out||'').split('_TO_');
+      if(p.length===2){
+        const from=p[0];
+        const to=p[1].replace(/_\d+[A-Z]+$/,'');
+        if(from===myId&&to!==myId&&/_FT_\d+$/.test(to)) ft.ft_proximo=to;
+      }
+    }
+  });
+}
+
 function addProject(d){
+  deriveChainLinks(d);
   PROJECTS[d.id]=d;
   const sel=document.getElementById('proj-sel');
   const o=document.createElement('option');o.value=d.id;o.textContent=d.name;sel.appendChild(o);
@@ -597,7 +617,7 @@ function render(){
     list.innerHTML=order.map(se=>{
       const its=groups[se];
       const key=se.replace(/[^a-z0-9]/gi,'_');
-      const isOpen=seOpen[se]!==false;
+      const isOpen=seOpen[se]===true;
       const doneC=its.filter(f=>getS(f.id).s==='done').length;
       const pendC=its.reduce((a,f)=>a+(getS(f.id).pendencias||[]).filter(p=>!p.done).length,0);
       const probC=its.filter(f=>getS(f.id).s==='prob').length;
@@ -798,6 +818,18 @@ function renderStatus(s){
   else{stag.className='stag spd';stag.textContent='⏳ Pendente';bd.textContent='✓ Marcar como feito';bd.style.background='var(--green)';bd.style.color='#000';bp.textContent='⚠ Problema';bp.style.display='';nw.style.display='none';document.getElementById('d-note').value='';}
 }
 
+function savePanel(){
+  const btn=document.getElementById('b-save');
+  if(!btn)return;
+  const orig=btn.innerHTML;
+  btn.innerHTML='✓ Salvo!';
+  btn.style.borderColor='var(--green)';
+  btn.style.color='var(--green)';
+  btn.style.background='var(--gbg)';
+  setTimeout(()=>{btn.innerHTML=orig;btn.style.borderColor='var(--blue)';btn.style.color='var(--blue)';btn.style.background='var(--bbg)';},1200);
+  closePanel();
+}
+
 function markDone(){
   if(!curFT)return;
   const s=getS(curFT.id);
@@ -847,7 +879,7 @@ function togRetro(){
 function togSec(id,arrId){const el=document.getElementById(id);const ar=document.getElementById(arrId);if(!el)return;const h=el.style.display==='none';el.style.display=h?'':'none';if(ar)ar.textContent=h?'▲':'▼';}
 
 function drawMM(ft){
-  const c=document.getElementById('mmc');const ctx=c.getContext('2d');
+  const c=document.getElementById('mmc');if(!c)return;const ctx=c.getContext('2d');
   const W=c.offsetWidth,H=c.offsetHeight;c.width=W;c.height=H;
   ctx.fillStyle='#0a0e14';ctx.fillRect(0,0,W,H);
   const pts=[];

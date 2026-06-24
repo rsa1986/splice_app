@@ -739,7 +739,7 @@ function openPanel(id){
     });
     document.getElementById('d-fb').innerHTML=fbHtml;
   }else{
-    document.getElementById('d-fb').innerHTML=ft.fusoes.map(f=>`<tr>
+    document.getElementById('d-fb').innerHTML=ft.fusoes.filter(f=>f.fusion!==false).map(f=>`<tr>
       <td><span class="cdot"><span class="dot" style="background:${f.bh}"></span>${f.bn}</span></td>
       <td><span class="cdot"><span class="dot" style="background:${f.fh}"></span>${f.fn}</span></td>
       <td><span class="pbadge">${f.porta||'—'}</span></td>
